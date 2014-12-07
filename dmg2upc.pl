@@ -103,7 +103,6 @@ sub process_recursive {
                 else {
                     print STDERR $title.":INGRESS\nPortal:";
                 }
-                # =だけエスケープ解除（本当はポータル名のところでやっているエスケープ解除をここでやりたいが文字化けを直せなかった・・・）
                 # =エスケープUTF-8
                 my $data_bytes = '';
                 my @chs = split(//,$data);
@@ -138,7 +137,6 @@ sub process_recursive {
                 # ---------- 緯度経度抽出 ----------
                 my @lats;
                 my @longs;
-                # 形式が2種類あったのでどっちも追加（割り切り実装）
                 while( $data =~ /intel\?ll=([0-9.]+),([0-9.]+)/g ) {
                     push(@lats,$1);
                     push(@longs,$2);
