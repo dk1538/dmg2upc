@@ -23,3 +23,13 @@ perl dmg2upc.pl /Users/daisuke/Library/Mail/V2/Mailboxes/Ingress\ Damage\ Report
 
 なお、第二引数を省略すると、Ownerに関わらずすべてのポータルを出力します。
 
+
+## ご注意
+
+動作は全く保証しません。
+
+明らかにキャプチャしたことのあるはずのポータルが表示されていないので、完全に正確ではないようです。
+（Damage Reportメールが来ていないのか、このスクリプトに不具合があるのかは不明。。）
+
+少なくとも、一発でOwner:[Uncaptured]になった場合は、UPCとして認識不可能です。
+
