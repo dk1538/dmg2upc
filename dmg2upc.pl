@@ -152,7 +152,8 @@ sub process_recursive {
                 my $count = @owners;# LINK DESTROYEDの場合、@portalnamesのほうが多くなるので、@ownersの方を数える。割り切りで実装。
                 for( my $i = 0; $i < $count; $i++ ) {
                     # すでにkml出力済みなら何もしない
-                    if( grep {$_ eq $portalnames[$i]} @done_portalnames ) {
+                    my $portalnameandloc = $portalnames[$i].$longs[$i].$lats[$i];#同名ポータルがあるので緯度経度も検索条件に加える
+                    if( grep {$_ eq $portalnameandloc } @done_portalnames ) {
                         next;
                     }
                     # 引数2があるときはオーナーが一致する場合のみ出力
@@ -168,7 +169,7 @@ sub process_recursive {
                         print "<Point><coordinates>".$longs[$i].",".$lats[$i].",0</coordinates></Point>\n";
                         print "</Placemark>\n";
                         # 登録済み配列追加
-                        push(@done_portalnames,$portalnames[$i]);
+                        push(@done_portalnames,$portalnameandloc);
                     }
                 }
                 print STDERR "\n";
