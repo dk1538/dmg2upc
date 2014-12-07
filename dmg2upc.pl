@@ -10,6 +10,15 @@ binmode STDIN, ':encoding(utf8)';
 binmode STDOUT, ':encoding(utf8)';
 binmode STDERR, ':encoding(utf8)';
 
+# Ingress Damage Reportを元に、UPCを列挙したKMLファイルを生成します。
+# 現状、対応しているのは、Macの"Mail"です。
+# ＜使い方＞
+# 第一引数：メールボックスフォルダ
+# 第二引数：agent名
+# →Ownerが第二引数と一致するポータルを、標準出力へKML形式で出力（"Google Earth"アプリで開けます。）
+# 例）perl dmg2upc.pl /Users/daisuke/Library/Mail/V2/Mailboxes/Ingress\ Damage\ Report.mbox dk1538 >upc.kml
+# なお、第二引数を省略すると、Ownerに関わらずすべてのポータルを出力します。
+
 # kml追加済みポータル名格納配列
 my @done_portalnames;
 
@@ -33,12 +42,13 @@ sub process_recursive {
             # emlxで終わるファイルのみ対象
             if( $file =~ /emlx$/ ) {
                 # ファイル名を標準エラー出力
-                print STDERR "file:".$file.":";
+                print STDERR "File:".$file.":";
                 my $base64mode = 0;
                 my $quotedprintablemode = 0;
                 my $base64data = '';
                 my $notingress = 0;
                 my $title = '';
+                my $charset = 'UTF-8';
                 # ファイルを開く
                 chdir($dir);
                 open(IN,"< ".$file) or die "cannot open";
@@ -62,6 +72,10 @@ sub process_recursive {
                         $notingress = 1;
                         $title = $1;
                         last;
+                    }
+                    # charset設定 どのcharsetで来るかは不定。GB2312で来たりする。
+                    if( $line =~ /Content-Type: text\/html; charset=(.+)/ ) {
+                        $charset = $1;
                     }
                     # モードきりかえ
                     if( $line =~ /Content-Transfer-Encoding: base64/ ) {
@@ -87,26 +101,12 @@ sub process_recursive {
                     next;
                 }
                 else {
-                    print STDERR $title.":INGRESS\nOwner:";
+                    print STDERR $title.":INGRESS\nPortal:";
                 }
                 # =だけエスケープ解除（本当はポータル名のところでやっているエスケープ解除をここでやりたいが文字化けを直せなかった・・・）
-                $data =~ s/=3D/=/g;
-                #print STDERR $data;
-                
-                # $dataの後ろにbase64をdecodeして追加
-                my $decoded = decode_base64($base64data);
-                $decoded = decode('ISO-2022-JP',$decoded);
-                $data = $data.$decoded;
-                # ファイルを閉じる
-                close(IN);
-            }
-            # ---------- ポータル名抽出 ----------
-            my @portalnames;
-            while( $data =~ /\"Portal - (.+?)\"/g )
-            {
                 # =エスケープUTF-8
                 my $data_bytes = '';
-                my @chs = split(//,$1);
+                my @chs = split(//,$data);
                 my $chs_count = @chs;
                 for( my $i = 0; $i < $chs_count; $i++ ) {
                     if( $chs[$i] eq "=" ) {
@@ -118,46 +118,62 @@ sub process_recursive {
                         $data_bytes = $data_bytes.$chs[$i];
                     }
                 }
-                my $portalname = decode_utf8($data_bytes);
-                push(@portalnames,$portalname);
-            }
-            # ---------- 緯度経度抽出 ----------
-            my @lats;
-            my @longs;
-            # 形式が2種類あったのでどっちも追加（割り切り実装）
-            while( $data =~ /intel\?ll=([0-9.]+),([0-9.]+)/g ) {
-                push(@lats,$1);
-                push(@longs,$2);
-            }
-            # ---------- オーナー抽出 ----------
-            my @owners;
-            while( $data =~ /Owner: (\<.+?\>)?(.+?)\<.+?\>/g ) {
-                push(@owners,$2);
-                print STDERR $2." ";
-            }
-            print STDERR "\n";
-            # ---------- kml出力 ----------
-            my $count = @owners;# LINK DESTROYEDの場合、@portalnamesのほうが多くなるので、@ownersの方を数える。割り切りで実装。
-            for( my $i = 0; $i < $count; $i++ ) {
-                # すでにkml出力済みなら何もしない
-                if( grep {$_ eq $portalnames[$i]} @done_portalnames ) {
-                    next;
-                }
-                # 引数2があるときはオーナーが一致する場合のみ出力
-                if( @ARGV == 1 or ($owners[$i] eq $ARGV[1]) )
+                $data = decode($charset,$data_bytes);
+                #print STDERR $data;
+                
+                # $dataの後ろにbase64をdecodeして追加
+                my $decoded = decode_base64($base64data);
+                $decoded = decode($charset,$decoded);
+                $data = $data.$decoded;
+                # ファイルを閉じる
+                close(IN);
+                # ---------- ポータル名抽出 ----------
+                my @portalnames;
+                while( $data =~ /\"Portal - (.+?)\"/g )
                 {
-                    # TSV出力ならこんな感じ
-                    #print $portalnames[$i]."\t".$lats[$i]."\t".$longs[$i]."\t".$owners[$i]."\n";
-                    
-                    # kml出力
-                    print "<Placemark>\n";
-                    print "<name>".$portalnames[$i]."</name>\n";
-                    print "<description>".$portalnames[$i]."</description>\n";
-                    print "<Point><coordinates>".$longs[$i].",".$lats[$i].",0</coordinates></Point>\n";
-                    print "</Placemark>\n";
-                    # 登録済み配列追加
-                    push(@done_portalnames,$portalnames[$i]);
+                    print STDERR $1."   ";
+                    push(@portalnames,$1);
                 }
+                print STDERR "\nOwner:";
+                # ---------- 緯度経度抽出 ----------
+                my @lats;
+                my @longs;
+                # 形式が2種類あったのでどっちも追加（割り切り実装）
+                while( $data =~ /intel\?ll=([0-9.]+),([0-9.]+)/g ) {
+                    push(@lats,$1);
+                    push(@longs,$2);
+                }
+                # ---------- オーナー抽出 ----------
+                my @owners;
+                while( $data =~ /Owner: (\<.+?\>)?(.+?)\<.+?\>/g ) {
+                    push(@owners,$2);
+                    print STDERR $2."   ";
+                }
+                print STDERR "\n";
+                # ---------- kml出力 ----------
+                my $count = @owners;# LINK DESTROYEDの場合、@portalnamesのほうが多くなるので、@ownersの方を数える。割り切りで実装。
+                for( my $i = 0; $i < $count; $i++ ) {
+                    # すでにkml出力済みなら何もしない
+                    if( grep {$_ eq $portalnames[$i]} @done_portalnames ) {
+                        next;
+                    }
+                    # 引数2があるときはオーナーが一致する場合のみ出力
+                    if( @ARGV == 1 or ($owners[$i] eq $ARGV[1]) )
+                    {
+                        # TSV出力ならこんな感じ
+                        #print $portalnames[$i]."\t".$lats[$i]."\t".$longs[$i]."\t".$owners[$i]."\n";
+                        
+                        # kml出力
+                        print "<Placemark>\n";
+                        print "<name>".$portalnames[$i]."</name>\n";
+                        print "<description>".$portalnames[$i]."</description>\n";
+                        print "<Point><coordinates>".$longs[$i].",".$lats[$i].",0</coordinates></Point>\n";
+                        print "</Placemark>\n";
+                        # 登録済み配列追加
+                        push(@done_portalnames,$portalnames[$i]);
+                    }
+                }
+                print STDERR "\n";
             }
         }
     }
