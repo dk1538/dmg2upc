@@ -19,6 +19,10 @@ binmode STDERR, ':encoding(utf8)';
 # 例）perl dmg2upc.pl /Users/daisuke/Library/Mail/V2/Mailboxes/Ingress\ Damage\ Report.mbox dk1538 >upc.kml
 # なお、第二引数を省略すると、Ownerに関わらずすべてのポータルを出力します。
 
+# 同様のWebサービスがすでにあるようなのですが、私はGmailの読み込み権限を第三者のサービスに渡すのは無理なので、作ってみました。
+
+# 動作の保証はいたしませんので、ご了承ください。（かなりやっつけで作ってます）
+
 # kml追加済みポータル名格納配列
 my @done_portalnames;
 
