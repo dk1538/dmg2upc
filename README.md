@@ -33,3 +33,5 @@ perl dmg2upc.pl /Users/daisuke/Library/Mail/V2/Mailboxes/Ingress\ Damage\ Report
 
 少なくとも、一発でOwner:[Uncaptured]になった場合は、UPCとして認識不可能です。
 
+なお、同様のWebサービスがすでにあるようなのですが、私はGmailの読み込み権限を第三者のサービスに渡すのは無理なので、作ってみました。
+
