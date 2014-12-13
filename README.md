@@ -2,7 +2,7 @@
 
 ## これなに？
 
-Ingress Damage Reportを元に、UPCを列挙したKMLファイルを生成します。
+Ingress Damage Reportメールを元に、UPCを列挙したKMLファイルを生成します。
 
 現状、対応しているのは、Macの"Mail"です。
 
@@ -31,7 +31,7 @@ perl dmg2upc.pl /Users/daisuke/Library/Mail/V2/Mailboxes/Ingress\ Damage\ Report
 
 3. Ingress用アカウントの受信フォルダで全メッセージを選択して、メニューから[メッセージ→ルールを適用]を選択
 
-4. このページの右の「Download Zip」からdmg2upcをダウンロード
+4. このページの右の「Download ZIP」からこのdmg2upcをダウンロード
 
 5. 「ターミナル」アプリを起動して、下記のコマンドを実行
 
